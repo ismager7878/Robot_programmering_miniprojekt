@@ -63,10 +63,12 @@ int16_t gyroOffset;
 // between readings of the gyro.
 uint16_t gyroLastUpdate = 0;
 
-int speed = 100;
-int threshold=500;
+int speed = 75;
+int threshold= 200;
 
 int lastDistance = 0;
+
+char dir;
 
 void setup() {
   Serial.begin(9600);
@@ -77,6 +79,7 @@ void setup() {
   turnSensorReset();
   oled.clear();
   findMaze();
+  
 }
 
 void printToOLED(String a = "", String b = "") {
@@ -89,7 +92,7 @@ void printToOLED(String a = "", String b = "") {
 
 void printReadingsToSerial()
 {
-  
+  printToOLED((String)lineSensorValues[0] + ", " + (String)lineSensorValues[1], (String)lineSensorValues[2]);
 }
 
 void calibrateLineSensors(){
@@ -109,9 +112,9 @@ void calibrateLineSensors(){
   awaitUser(message, 5);
 }
 
-bool lineNotDetected() {
+bool lineDetected() {
   readLineSensors();
-  return !(lineSensorValues[1] > threshold);
+  return (lineSensorValues[0] > threshold || lineSensorValues[1] > threshold || lineSensorValues[2] > threshold);
 }
 
 void driveWhile(bool (&con)(), int direction) {
@@ -130,14 +133,52 @@ void driveWhile(bool (&con)(), int direction) {
 void findMaze(){
   motors.setSpeeds(speed, speed);
   unsigned long startTime = millis();
-  while(lineNotDetected() || (millis() - startTime) < 2000){
+  int time = random(2000,4000);
+  printToOLED("finding Maze");
+  while((millis() - startTime) < time){
     updateMotorSpeeds(1);
+    if(lineDetected()){
+      if(lineSensorValues[0] > threshold){
+        dir = 'l';
+      }else{
+        dir = 'r';
+      }
+      stop();
+      return;
+    }
+  }
+  turnByAngle(random(90, 361));
+  delay(300);
+  findMaze();
+}
+
+void turnByAngle(int angle) {
+  printToOLED("Angle:", (String)angle);
+  turnSensorReset();
+  if(angle > 180){
+    motors.setSpeeds(speed, -speed);
+    delay(20);
+    while(getTurnAngleInDegrees() > angle){
+
+    }
+  }else{
+    motors.setSpeeds(-speed, speed);
+    delay(20);
+    while(getTurnAngleInDegrees() < angle){
+
+    }
   }
   stop();
+  resetEncoders();
 }
 
 void stop() {
   motors.setSpeeds(0, 0);
+}
+
+void resetEncoders() {
+  encoders.getCountsAndResetLeft();
+  encoders.getCountsAndResetRight();
 }
 
 void awaitUser(String messages[], int len) {
@@ -190,10 +231,27 @@ void readLineSensors(){
 
 int32_t getTurnAngleInDegrees(){
   turnSensorUpdate();
-  return turnAngle;
+  return (((turnAngle >> 16)*360) >> 16);
 }
 
 void loop() {
+  if(lineDetected()){
+    if(lineSensorValues[0] > threshold){
+      if(dir == 'l'){
+        turnByAngle(355);
+      }else{
+        turnByAngle(90);
+      }
+      motors.setSpeeds(-speed*0.2, speed);
+    }else{
+      if(dir == 'r'){
+        turnByAngle(5);
+      }else{
+        turnByAngle(270);
+      }
+      motors.setSpeeds(speed, -speed*0.2);
+    }
+  }
 }
 /* This should be called in setup() to enable and calibrate the
 gyro.  It uses the oled, yellow LED, and button A.  While the oled
@@ -242,7 +300,7 @@ void turnSensorSetup()
     turnSensorUpdate();
     oled.gotoXY(0, 0);
   // do some math and pointer magic to turn angle in seconds to angle in degrees
-    oled.print(turnAngle);
+    oled.print((((turnAngle >> 16)*360) >> 16));
     oled.print(F("   "));
   }
   oled.clear();
@@ -282,5 +340,5 @@ void turnSensorUpdate()
   //
   // (0.07 dps/digit) * (1/1000000 s/us) * (2^29/45 unit/degree)
   // = 14680064/17578125 unit/(digit*us)
-  turnAngle += (int64_t)d * 1 / 1000000;
+  turnAngle += (int64_t)d * 14680064/17578125;
 }
