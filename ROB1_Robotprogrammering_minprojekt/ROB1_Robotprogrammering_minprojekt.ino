@@ -31,11 +31,9 @@ float factor = 1.015;
 int lineSensorCalTries = 5;
 int driveTime = 500;
 
-const int numSensors = 3;
+#define NUMSENSORS 3;
 
-int stage = 0;
-
-uint16_t lineSensorValues[numSensors];
+uint16_t lineSensorValues[NUMSENSORS];
 
 /* turnAngle is a 32-bit unsigned integer representing the amount
 the robot has turned since the last time turnSensorReset was
@@ -64,7 +62,7 @@ int16_t gyroOffset;
 uint16_t gyroLastUpdate = 0;
 
 int speed = 75;
-int threshold= 200;
+int threshold = 200;
 
 int lastDistance = 0;
 
@@ -79,7 +77,6 @@ void setup() {
   turnSensorReset();
   oled.clear();
   findMaze();
-  
 }
 
 void printToOLED(String a = "", String b = "") {
@@ -90,25 +87,24 @@ void printToOLED(String a = "", String b = "") {
   oled.print(b);
 }
 
-void printReadingsToSerial()
-{
+void printReadingsToSerial() {
   printToOLED((String)lineSensorValues[0] + ", " + (String)lineSensorValues[1], (String)lineSensorValues[2]);
 }
 
-void calibrateLineSensors(){
-  for(int i = 0; i < lineSensorCalTries; i++){
+void calibrateLineSensors() {
+  for (int i = 0; i < lineSensorCalTries; i++) {
     int lastTime = millis();
-    motors.setSpeeds(speed,speed);
-    while(millis() - lastTime < driveTime){
+    motors.setSpeeds(speed, speed);
+    while (millis() - lastTime < driveTime) {
       lineSensors.calibrate();
       delay(20);
     }
-    speed = speed*-1;
+    speed = speed * -1;
   }
   stop();
   speed = abs(speed);
 
-  String message[] = {"Cal", "Done", "Place at", "Maze and", "Press A"};
+  String message[] = { "Cal", "Done", "Place at", "Maze and", "Press A" };
   awaitUser(message, 5);
 }
 
@@ -117,30 +113,17 @@ bool lineDetected() {
   return (lineSensorValues[0] > threshold || lineSensorValues[1] > threshold || lineSensorValues[2] > threshold);
 }
 
-void driveWhile(bool (&con)(), int direction) {
-  unsigned long currentTime = millis();
-  motors.setSpeeds(speed, speed);
-  while ((millis() - currentTime) < 100) {
-    updateMotorSpeeds(direction);
-  }
-  while (con()) {
-    updateMotorSpeeds(direction);
-  }
-  lastDistance = 0;
-  stop();
-}
-
-void findMaze(){
+void findMaze() {
   motors.setSpeeds(speed, speed);
   unsigned long startTime = millis();
-  int time = random(2000,4000);
+  int time = random(2000, 4000);
   printToOLED("finding Maze");
-  while((millis() - startTime) < time){
+  while ((millis() - startTime) < time) {
     updateMotorSpeeds(1);
-    if(lineDetected()){
-      if(lineSensorValues[0] > threshold){
+    if (lineDetected()) {
+      if (lineSensorValues[0] > threshold) {
         dir = 'l';
-      }else{
+      } else {
         dir = 'r';
       }
       stop();
@@ -155,17 +138,15 @@ void findMaze(){
 void turnByAngle(int angle) {
   printToOLED("Angle:", (String)angle);
   turnSensorReset();
-  if(angle > 180){
+  if (angle > 180) {
     motors.setSpeeds(speed, -speed);
     delay(20);
-    while(getTurnAngleInDegrees() > angle){
-
+    while (getTurnAngleInDegrees() > angle) {
     }
-  }else{
+  } else {
     motors.setSpeeds(-speed, speed);
     delay(20);
-    while(getTurnAngleInDegrees() < angle){
-
+    while (getTurnAngleInDegrees() < angle) {
     }
   }
   stop();
@@ -182,32 +163,31 @@ void resetEncoders() {
 }
 
 void awaitUser(String messages[], int len) {
-  if(len > 2){
-    for(int i = 0; i < len; i++){
-        if(!(i + 1 < len)){
-          printToOLED(messages[i]);
-        }else{
-          printToOLED(messages[i], messages[i+1]);
-          i++;
+  if (len > 2) {
+    for (int i = 0; i < len; i++) {
+      if (!(i + 1 < len)) {
+        printToOLED(messages[i]);
+      } else {
+        printToOLED(messages[i], messages[i + 1]);
+        i++;
+      }
+      unsigned long startTime = millis();
+      while (millis() - startTime < 2000) {
+        if (buttonA.getSingleDebouncedRelease()) {
+          oled.clear();
+          return;
         }
-        unsigned long startTime = millis();
-        while(millis() - startTime < 2000){
-          if(buttonA.getSingleDebouncedRelease()){
-            oled.clear();
-            return;
-          }
-        }
-        if(i + 1 == len){
-          i = -1;
-        }
-    } 
-  }else{
-    printToOLED(messages[0],  len == 2 ? messages[1] : "");
+      }
+      if (i + 1 == len) {
+        i = -1;
+      }
+    }
+  } else {
+    printToOLED(messages[0], len == 2 ? messages[1] : "");
     while (!buttonA.getSingleDebouncedRelease()) {
     }
     oled.clear();
   }
-  
 }
 
 void updateMotorSpeeds(int direction) {
@@ -224,32 +204,32 @@ void updateMotorSpeeds(int direction) {
   motors.setSpeeds(speed * direction, currentSpeedRight * direction);
 }
 
-void readLineSensors(){
+void readLineSensors() {
   lineSensors.readCalibrated(lineSensorValues, QTR_EMITTERS_ON);
   printReadingsToSerial();
 }
 
-int32_t getTurnAngleInDegrees(){
+int32_t getTurnAngleInDegrees() {
   turnSensorUpdate();
-  return (((turnAngle >> 16)*360) >> 16);
+  return (((turnAngle >> 16) * 360) >> 16);
 }
 
 void loop() {
-  if(lineDetected()){
-    if(lineSensorValues[0] > threshold){
-      if(dir == 'l'){
+  if (lineDetected()) {
+    if (lineSensorValues[0] > threshold) {
+      if (dir == 'l') {
         turnByAngle(355);
-      }else{
+      } else {
         turnByAngle(90);
       }
-      motors.setSpeeds(-speed*0.2, speed);
-    }else{
-      if(dir == 'r'){
+      motors.setSpeeds(-speed * 0.2, speed);
+    } else {
+      if (dir == 'r') {
         turnByAngle(5);
-      }else{
+      } else {
         turnByAngle(270);
       }
-      motors.setSpeeds(speed, -speed*0.2);
+      motors.setSpeeds(speed, -speed * 0.2);
     }
   }
 }
@@ -261,8 +241,7 @@ still.
 The digital zero-rate level of the gyro can be as high as
 25 degrees per second, and this calibration helps us correct for
 that. */
-void turnSensorSetup()
-{
+void turnSensorSetup() {
   Wire.begin();
   imu.init();
   imu.enableDefault();
@@ -279,10 +258,9 @@ void turnSensorSetup()
 
   // Calibrate the gyro.
   int32_t total = 0;
-  for (uint16_t i = 0; i < 1024; i++)
-  {
+  for (uint16_t i = 0; i < 1024; i++) {
     // Wait for new data to be available, then read it.
-    while(!imu.gyroDataReady()) {}
+    while (!imu.gyroDataReady()) {}
     imu.readGyro();
 
     // Add the Z axis reading to the total.
@@ -295,12 +273,11 @@ void turnSensorSetup()
   // user presses A.
   oled.clear();
   turnSensorReset();
-  while (!buttonA.getSingleDebouncedRelease())
-  {
+  while (!buttonA.getSingleDebouncedRelease()) {
     turnSensorUpdate();
     oled.gotoXY(0, 0);
-  // do some math and pointer magic to turn angle in seconds to angle in degrees
-    oled.print((((turnAngle >> 16)*360) >> 16));
+    // do some math and pointer magic to turn angle in seconds to angle in degrees
+    oled.print((((turnAngle >> 16) * 360) >> 16));
     oled.print(F("   "));
   }
   oled.clear();
@@ -308,16 +285,14 @@ void turnSensorSetup()
 
 // This should be called to set the starting point for measuring
 // a turn.  After calling this, turnAngle will be 0.
-void turnSensorReset()
-{
+void turnSensorReset() {
   gyroLastUpdate = micros();
   turnAngle = 0;
 }
 
 // Read the gyro and update the angle.  This should be called as
 // frequently as possible while using the gyro to do turns.
-void turnSensorUpdate()
-{
+void turnSensorUpdate() {
   // Read the measurements from the gyro.
   imu.readGyro();
   turnRate = imu.g.z - gyroOffset;
@@ -340,5 +315,5 @@ void turnSensorUpdate()
   //
   // (0.07 dps/digit) * (1/1000000 s/us) * (2^29/45 unit/degree)
   // = 14680064/17578125 unit/(digit*us)
-  turnAngle += (int64_t)d * 14680064/17578125;
+  turnAngle += (int64_t)d * 14680064 / 17578125;
 }
