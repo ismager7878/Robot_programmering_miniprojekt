@@ -31,7 +31,7 @@ float factor = 1.015;
 int lineSensorCalTries = 5;
 int driveTime = 500;
 
-#define NUMSENSORS 3;
+#define NUMSENSORS 3
 
 uint16_t lineSensorValues[NUMSENSORS];
 
@@ -119,7 +119,7 @@ void findMaze() {
   int time = random(2000, 4000);
   printToOLED("finding Maze");
   while ((millis() - startTime) < time) {
-    updateMotorSpeeds(1);
+    updateMotorSpeeds();
     if (lineDetected()) {
       if (lineSensorValues[0] > threshold) {
         dir = 'l';
@@ -190,18 +190,18 @@ void awaitUser(String messages[], int len) {
   }
 }
 
-void updateMotorSpeeds(int direction) {
+void updateMotorSpeeds() {
 
-  int countLeft = encoders.getCountsLeft() * direction;
-  int countRight = encoders.getCountsRight() * direction;
+  int countLeft = encoders.getCountsLeft();
+  int countRight = encoders.getCountsRight();
 
   if (countLeft > 30000 || countRight > 30000) {
     encoders.getCountsAndResetLeft();
     encoders.getCountsAndResetRight();
   }
 
-  int currentSpeedRight = speed + (countLeft - countRight * (direction > 0 ? factor : revFactor));
-  motors.setSpeeds(speed * direction, currentSpeedRight * direction);
+  int currentSpeedRight = speed + (countLeft - countRight * factor);
+  motors.setSpeeds(speed, currentSpeedRight);
 }
 
 void readLineSensors() {
